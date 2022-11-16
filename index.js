@@ -27,13 +27,41 @@ const client = new MongoClient(uri, {
 //this function is used for all MongoDB works inside the try section.
 async function run() {
   try {
+    //appointment options collection
     const appointmentOptionsCollection = client
       .db("doctors-portal")
       .collection("appointmentOptions");
 
+    //bookings colloection
+    const bookingsCollection = client
+      .db("doctors-portal")
+      .collection("bookings");
+
+    //get data from appointments collection
     app.get("/appointmentOptions", async (req, res) => {
-      const query = {};
-      const result = await appointmentOptionsCollection.find(query).toArray();
+      const date = req.query.date;
+
+      //used for options collection
+      const optionsQuery = {};
+      const options = await appointmentOptionsCollection.find(optionsQuery).toArray();
+      //used for bookins collection
+      const bookingQuery = { selectedDate: date };
+      const alreadyBooked = await bookingsCollection.find(bookingQuery).toArray();
+
+      //used for filtering slots form option collection
+      options.forEach(option => {
+        const optionsBooked = alreadyBooked.filter(booked => booked.treatmentName === option.name)
+        const bookedSlots = optionsBooked.map(booked => booked.selectedTime)
+        const remainigSlots = option.slots.filter(slot => !bookedSlots.includes(slot))
+        option.slots = remainigSlots
+      })
+      res.send(options);
+    });
+
+    //create data for booking collection
+    app.post("/bookings", async (req, res) => {
+      const bookingData = req.body;
+      const result = await bookingsCollection.insertOne(bookingData);
       res.send(result);
     });
   } finally {
