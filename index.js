@@ -61,6 +61,19 @@ async function run() {
     //create data for booking collection
     app.post("/bookings", async (req, res) => {
       const bookingData = req.body;
+      //verify that, is there any other slots has been booked by the current user
+      const query = {
+        patientEmail: bookingData.patientEmail,
+        selectedDate: bookingData.selectedDate,
+        treatmentName: bookingData.treatmentName
+      }
+      const alreadyBooked = await bookingsCollection.find(query).toArray();
+      //verify booking selections
+      if (alreadyBooked.length) {
+        const message = `You already have a booking on ${bookingData.selectedDate}`
+        return res.send({ acknowledged: false, message })
+      }
+      //
       const result = await bookingsCollection.insertOne(bookingData);
       res.send(result);
     });
