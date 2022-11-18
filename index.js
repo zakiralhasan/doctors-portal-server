@@ -53,10 +53,19 @@ async function run() {
         const optionsBooked = alreadyBooked.filter(booked => booked.treatmentName === option.name)
         const bookedSlots = optionsBooked.map(booked => booked.selectedTime)
         const remainigSlots = option.slots.filter(slot => !bookedSlots.includes(slot))
-        option.slots = remainigSlots
+        option.slots = remainigSlots;
       })
       res.send(options);
     });
+
+    //get data from bookings collection by searching user email
+    app.get('/bookings', async (req, res) => {
+      // const query = {}
+      const email = req.query.email;
+      const query = { patientEmail: email };
+      const result = await bookingsCollection.find(query).toArray();
+      res.send(result)
+    })
 
     //create data for booking collection
     app.post("/bookings", async (req, res) => {
