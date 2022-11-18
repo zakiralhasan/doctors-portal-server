@@ -8,6 +8,9 @@ const { MongoClient, ServerApiVersion } = require("mongodb");
 //port for run server
 const port = process.env.PORT || 5000;
 
+//used for jwt function
+const jwt = require('jsonwebtoken');
+
 //used for dotenv purpose
 require("dotenv").config();
 
@@ -89,6 +92,19 @@ async function run() {
       const userInfo = req.body;
       const result = await usersCollection.insertOne(userInfo);
       res.send(result)
+    })
+
+    //get user from user collection and verify, then send access token to frontend
+    app.get('/jwt', async (req, res) => {
+      const userEmail = req.query.email;
+      const query = { email: userEmail };
+      const user = await usersCollection.findOne(query);
+      if (user) {
+        const token = jwt.sign({ user }, process.env.ACCESS_TOKEN, { expiresIn: '1d' });
+        return res.send({ accessToken: token });
+      };
+      res.status(403).send({ message: 'Unauthorised access' })
+
     })
 
   } finally {
