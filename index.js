@@ -28,14 +28,11 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     //appointment options collection
-    const appointmentOptionsCollection = client
-      .db("doctors-portal")
-      .collection("appointmentOptions");
-
+    const appointmentOptionsCollection = client.db("doctors-portal").collection("appointmentOptions");
     //bookings colloection
-    const bookingsCollection = client
-      .db("doctors-portal")
-      .collection("bookings");
+    const bookingsCollection = client.db("doctors-portal").collection("bookings");
+    //bookings colloection
+    const usersCollection = client.db("doctors-portal").collection("users");
 
     //get data from appointments collection
     app.get("/appointmentOptions", async (req, res) => {
@@ -86,6 +83,14 @@ async function run() {
       const result = await bookingsCollection.insertOne(bookingData);
       res.send(result);
     });
+
+    //create user information and stor it to the user collection
+    app.post('/users', async (req, res) => {
+      const userInfo = req.body;
+      const result = await usersCollection.insertOne(userInfo);
+      res.send(result)
+    })
+
   } finally {
   }
 }
