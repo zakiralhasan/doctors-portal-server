@@ -115,6 +115,13 @@ async function run() {
       res.send(result)
     })
 
+    //get user information from user collection on mongoDB
+    app.get('/users', async (req, res) => {
+      const query = {};
+      const result = await usersCollection.find(query).toArray();
+      res.send(result)
+    })
+
     //get user from user collection and verify, then send access token to frontend
     app.get('/jwt', async (req, res) => {
       const userEmail = req.query.email;
