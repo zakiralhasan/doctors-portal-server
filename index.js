@@ -3,7 +3,7 @@ const cors = require("cors");
 const app = express();
 
 //get from mongodb or used for mongodb
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 //port for run server
 const port = process.env.PORT || 5000;
@@ -120,6 +120,34 @@ async function run() {
       const query = {};
       const result = await usersCollection.find(query).toArray();
       res.send(result)
+    })
+
+    //get admin user form user collections
+    app.get('/users/admin/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { email }
+      const user = await usersCollection.findOne(query);
+      res.send({ isAdmin: user?.role === 'admin' })
+    })
+
+    //update user info for admin role
+    app.put('/users/admin/:id', verifyJWT, async (req, res) => {
+      //jwt verify section
+      const decodedEmail = req.decoded.user.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== 'admin') {
+        return res.status(403).send({ message: 'forbidden access' }) //forth check
+      }
+      //user data get section
+      const id = req.params.id;
+      const fillter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: { role: 'admin' }
+      }
+      const result = await usersCollection.updateOne(fillter, updatedDoc, options);
+      res.send(result);
     })
 
     //get user from user collection and verify, then send access token to frontend
