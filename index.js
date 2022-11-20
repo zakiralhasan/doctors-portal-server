@@ -56,6 +56,18 @@ async function run() {
     //doctors colloection
     const doctorsCollection = client.db("doctors-portal").collection("doctors");
 
+    //Note: verify admin must be use after verify jwt middle ware
+    //this is an admin verify middle ware 
+    const verifyAdmin = async (req, res, next) => {
+      const decodedEmail = req.decoded.user.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== 'admin') {
+        return res.status(403).send({ message: 'forbidden access' }) //forth check
+      }
+      next()
+    }
+
     //get data from appointments collection
     app.get("/appointmentOptions", async (req, res) => {
       const date = req.query.date;
@@ -85,13 +97,8 @@ async function run() {
     })
 
     //get data from bookings collection by searching user email
-    app.get('/bookings', verifyJWT, async (req, res) => {
+    app.get('/bookings', verifyJWT, verifyAdmin, async (req, res) => {
       const email = req.query.email;
-      const decodedEmail = req.decoded.user.email;
-
-      if (email !== decodedEmail) {
-        return res.status(403).send({ message: 'forbidden access' }) //forth check
-      }
       const query = { patientEmail: email };
       const result = await bookingsCollection.find(query).toArray();
       res.send(result)
@@ -140,15 +147,7 @@ async function run() {
     })
 
     //update user info for admin role
-    app.put('/users/admin/:id', verifyJWT, async (req, res) => {
-      //jwt verify section
-      const decodedEmail = req.decoded.user.email;
-      const query = { email: decodedEmail };
-      const user = await usersCollection.findOne(query);
-      if (user?.role !== 'admin') {
-        return res.status(403).send({ message: 'forbidden access' }) //forth check
-      }
-      //user data get section
+    app.put('/users/admin/:id', verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const fillter = { _id: ObjectId(id) };
       const options = { upsert: true };
@@ -172,14 +171,14 @@ async function run() {
     })
 
     //get doctor data at doctors collection on mongoDB
-    app.get('/doctors', async (req, res) => {
+    app.get('/doctors', verifyJWT, verifyAdmin, async (req, res) => {
       const query = {};
       const result = await doctorsCollection.find(query).toArray();
       res.send(result)
     })
 
     //delete a doctor data from doctors collection on mongoDB
-    app.delete('/doctors/:id', async (req, res) => {
+    app.delete('/doctors/:id', verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const result = await doctorsCollection.deleteOne(filter);
@@ -187,7 +186,7 @@ async function run() {
     })
 
     //create new doctor data at doctors collection on mongoDB
-    app.post('/doctors', async (req, res) => {
+    app.post('/doctors', verifyJWT, verifyAdmin, async (req, res) => {
       const doctorData = req.body;
       const result = await doctorsCollection.insertOne(doctorData);
       res.send(result)
