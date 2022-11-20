@@ -178,6 +178,14 @@ async function run() {
       res.send(result)
     })
 
+    //delete a doctor data from doctors collection on mongoDB
+    app.delete('/doctors/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await doctorsCollection.deleteOne(filter);
+      res.send(result)
+    })
+
     //create new doctor data at doctors collection on mongoDB
     app.post('/doctors', async (req, res) => {
       const doctorData = req.body;
