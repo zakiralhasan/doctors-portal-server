@@ -171,6 +171,13 @@ async function run() {
       res.status(401).send({ message: 'Unauthorised access' })
     })
 
+    //get doctor data at doctors collection on mongoDB
+    app.get('/doctors', async (req, res) => {
+      const query = {};
+      const result = await doctorsCollection.find(query).toArray();
+      res.send(result)
+    })
+
     //create new doctor data at doctors collection on mongoDB
     app.post('/doctors', async (req, res) => {
       const doctorData = req.body;
