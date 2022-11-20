@@ -53,6 +53,8 @@ async function run() {
     const bookingsCollection = client.db("doctors-portal").collection("bookings");
     //bookings colloection
     const usersCollection = client.db("doctors-portal").collection("users");
+    //doctors colloection
+    const doctorsCollection = client.db("doctors-portal").collection("doctors");
 
     //get data from appointments collection
     app.get("/appointmentOptions", async (req, res) => {
@@ -74,6 +76,13 @@ async function run() {
       })
       res.send(options);
     });
+
+    //get only appointments name from appointment options collection
+    app.get('/appointmentSpecialty', async (req, res) => {
+      const query = {};
+      const result = await appointmentOptionsCollection.find(query).project({ name: 1 }).toArray();
+      res.send(result)
+    })
 
     //get data from bookings collection by searching user email
     app.get('/bookings', verifyJWT, async (req, res) => {
@@ -160,6 +169,13 @@ async function run() {
         return res.send({ accessToken: token });
       };
       res.status(401).send({ message: 'Unauthorised access' })
+    })
+
+    //create new doctor data at doctors collection on mongoDB
+    app.post('/doctors', async (req, res) => {
+      const doctorData = req.body;
+      const result = await doctorsCollection.insertOne(doctorData);
+      res.send(result)
     })
 
   } finally {
