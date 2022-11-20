@@ -97,7 +97,7 @@ async function run() {
     })
 
     //get data from bookings collection by searching user email
-    app.get('/bookings', verifyJWT, verifyAdmin, async (req, res) => {
+    app.get('/bookings', async (req, res) => {
       const email = req.query.email;
       const query = { patientEmail: email };
       const result = await bookingsCollection.find(query).toArray();
@@ -125,14 +125,14 @@ async function run() {
     });
 
     //create user information and stor it to the user collection
-    app.post('/users', async (req, res) => {
+    app.post('/users', verifyJWT, verifyAdmin, async (req, res) => {
       const userInfo = req.body;
       const result = await usersCollection.insertOne(userInfo);
       res.send(result)
     })
 
     //get user information from user collection on mongoDB
-    app.get('/users', async (req, res) => {
+    app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
       const query = {};
       const result = await usersCollection.find(query).toArray();
       res.send(result)
@@ -156,6 +156,14 @@ async function run() {
       }
       const result = await usersCollection.updateOne(fillter, updatedDoc, options);
       res.send(result);
+    })
+
+    //delete a doctor data from doctors collection on mongoDB
+    app.delete('/users/:id', verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await usersCollection.deleteOne(filter);
+      res.send(result)
     })
 
     //get user from user collection and verify, then send access token to frontend
