@@ -2,17 +2,22 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 
+//port for run server
+const port = process.env.PORT || 5000;
+
+//used for dotenv purpose
+require("dotenv").config();
+
 //get from mongodb or used for mongodb
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
-//port for run server
-const port = process.env.PORT || 5000;
+//used for stripe
+const stripe = require("stripe")(process.env.STRIPE_SECRET);
 
 //used for jwt function
 const jwt = require('jsonwebtoken');
 
-//used for dotenv purpose
-require("dotenv").config();
+
 
 //midle ware
 app.use(cors());
@@ -53,6 +58,8 @@ async function run() {
     const bookingsCollection = client.db("doctors-portal").collection("bookings");
     //bookings colloection
     const usersCollection = client.db("doctors-portal").collection("users");
+    //payments colloection
+    const paymentsCollection = client.db("doctors-portal").collection("payments");
     //doctors colloection
     const doctorsCollection = client.db("doctors-portal").collection("doctors");
 
@@ -101,6 +108,14 @@ async function run() {
       const email = req.query.email;
       const query = { patientEmail: email };
       const result = await bookingsCollection.find(query).toArray();
+      res.send(result)
+    })
+
+    //get data from bookings collection by searching user id (it's used for payment handle)
+    app.get('/bookings/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await bookingsCollection.findOne(query);
       res.send(result)
     })
 
@@ -164,6 +179,37 @@ async function run() {
       const filter = { _id: ObjectId(id) };
       const result = await usersCollection.deleteOne(filter);
       res.send(result)
+    })
+
+    //This API is used for stripe
+    app.post("/create-payment-intent", async (req, res) => {
+      const booking = req.body;
+      const price = booking.price;
+      const amount = parseFloat(price * 100)
+
+      // Create a PaymentIntent with the order amount and currency
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ['card']
+      });
+      res.send({ clientSecret: paymentIntent.client_secret });
+    });
+
+    //stored payment information on the data base
+    app.post('/payments', async (req, res) => {
+      const payment = req.body;
+      const result = await paymentsCollection.insertOne(payment);
+      const id = payment.bookingId
+      const filter = { _id: ObjectId(id) }
+      const updatedDoc = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId
+        }
+      }
+      const updatedResult = await bookingsCollection.updateOne(filter, updatedDoc)
+      res.send(result);
     })
 
     //get user from user collection and verify, then send access token to frontend
